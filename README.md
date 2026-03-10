@@ -86,6 +86,42 @@ curl -X POST http://sidecar:9090/reload \
 - Use `RELOAD_TOKEN` in production
 - The sidecar can only restart the single container specified in `TARGET_CONTAINER`
 
+## Testing
+
+Requirements: Docker, curl, python3.
+
+```bash
+# Run from any directory
+./tests/test.sh
+```
+
+The script will:
+1. Build the image locally
+2. Spin up temporary containers (auto-cleaned on exit)
+3. Test restart mode, signal mode, auth, and error cases
+
+```
+=== Test 1: restart mode ===
+  ✅ health returns ok
+  ✅ target is running
+  ✅ no token → 403
+  ✅ reload succeeds
+  ✅ container was restarted (StartedAt changed)
+
+=== Test 2: signal mode ===
+  ✅ signal reload succeeds
+  ✅ detail says HUP
+
+=== Test 3: missing target ===
+  ✅ missing target → not running
+  ✅ reload fails for missing target
+
+===================================
+  Passed: 9
+  Failed: 0
+===================================
+```
+
 ## License
 
 MIT
