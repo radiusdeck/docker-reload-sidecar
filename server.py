@@ -56,7 +56,7 @@ def _container_running() -> bool:
     """Quick health check — is the target container running?"""
     try:
         status, body = _docker_request("GET", f"/containers/{TARGET_CONTAINER}/json")
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     if status != 200:
         return False
@@ -89,7 +89,7 @@ def reload_container() -> tuple[bool, str]:
 class ReloadHandler(http.server.BaseHTTPRequestHandler):
     """GET /health, POST /reload."""
 
-    def do_GET(self) -> None:  # noqa: N802
+    def do_GET(self) -> None:
         """Handle GET requests."""
         if self.path == "/health":
             target_ok = _container_running()
@@ -104,7 +104,7 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def do_POST(self) -> None:  # noqa: N802
+    def do_POST(self) -> None:
         """Handle POST requests."""
         if self.path != "/reload":
             self.send_error(404)
@@ -149,7 +149,7 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
     def _log(self, msg: str) -> None:
         print(f"[reload] {msg}", file=sys.stderr, flush=True)
 
-    def log_message(self, fmt: str, *args: Any) -> None:  # noqa: ARG002
+    def log_message(self, fmt: str, *args: Any) -> None:
         """Quieter default logging."""
         if args:
             self._log(f"{self.address_string()} {args[0]}")
