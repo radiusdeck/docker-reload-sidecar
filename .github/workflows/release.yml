@@ -13,8 +13,33 @@ env:
   IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
+  # ── CI gate — все проверки перед релизом ────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff mypy
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: mypy server.py
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - name: Integration tests
+        run: |
+          chmod +x tests/test.sh
+          ./tests/test.sh
+
+  # ── Build & Push ────────────────────────────────────────
   release:
     runs-on: ubuntu-latest
+    needs: test
     steps:
       - uses: actions/checkout@v4
 

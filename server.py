@@ -14,6 +14,7 @@ RELOAD_TOKEN     : str   — bearer token for auth           (default: "" = no a
 PORT             : int   — listen port                     (default: 9090)
 RESTART_TIMEOUT  : int   — seconds before SIGKILL          (default: 10)
 """
+
 from __future__ import annotations
 
 import http.client
@@ -54,9 +55,7 @@ def _docker_request(method: str, path: str) -> tuple[int, str]:
 def _container_running() -> bool:
     """Quick health check — is the target container running?"""
     try:
-        status, body = _docker_request(
-            "GET", f"/containers/{TARGET_CONTAINER}/json"
-        )
+        status, body = _docker_request("GET", f"/containers/{TARGET_CONTAINER}/json")
         if status != 200:
             return False
         info = json.loads(body)
@@ -92,11 +91,14 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         if self.path == "/health":
             target_ok = _container_running()
-            self._json(200, {
-                "status": "ok",
-                "target_container": TARGET_CONTAINER,
-                "target_running": target_ok,
-            })
+            self._json(
+                200,
+                {
+                    "status": "ok",
+                    "target_container": TARGET_CONTAINER,
+                    "target_running": target_ok,
+                },
+            )
         else:
             self.send_error(404)
 
@@ -113,16 +115,24 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
 
         ok, detail = reload_container()
         if ok:
-            self._json(200, {
-                "ok": True, "detail": detail,
-                "container": TARGET_CONTAINER,
-            })
+            self._json(
+                200,
+                {
+                    "ok": True,
+                    "detail": detail,
+                    "container": TARGET_CONTAINER,
+                },
+            )
             self._log(f"✓ reload success: {detail}")
         else:
-            self._json(502, {
-                "ok": False, "error": detail,
-                "container": TARGET_CONTAINER,
-            })
+            self._json(
+                502,
+                {
+                    "ok": False,
+                    "error": detail,
+                    "container": TARGET_CONTAINER,
+                },
+            )
             self._log(f"✗ reload failed: {detail}")
 
     def _json(self, code: int, data: dict[str, Any]) -> None:
@@ -144,8 +154,7 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
 # ── entrypoint ────────────────────────────────────────────────
 def main() -> None:
     banner = (
-        f"reload-sidecar | port={PORT} "
-        f"target={TARGET_CONTAINER} mode={RELOAD_MODE}"
+        f"reload-sidecar | port={PORT} target={TARGET_CONTAINER} mode={RELOAD_MODE}"
     )
     if RELOAD_MODE == "signal":
         banner += f" signal={RELOAD_SIGNAL}"

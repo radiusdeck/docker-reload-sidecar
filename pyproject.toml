@@ -1,0 +1,58 @@
+[project]
+name = "docker-reload-sidecar"
+version = "1.0.0"
+requires-python = ">=3.10"
+
+# Zero runtime dependencies — stdlib only
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "N",     # pep8-naming
+    "UP",    # pyupgrade
+    "B",     # flake8-bugbear
+    "A",     # flake8-builtins
+    "S",     # flake8-bandit (security)
+    "T20",   # flake8-print
+    "SIM",   # flake8-simplify
+    "TCH",   # flake8-type-checking
+    "RUF",   # ruff-specific
+]
+ignore = [
+    "T201",  # print() — print is used for logging (zero-dep)
+    "S104",  # binding to 0.0.0.0 — it is server
+    "S110",  # try-except-pass — in _container_running() it is ok
+    "UP035", # deprecated typing imports — supports 3.10+
+]
+
+[tool.ruff.lint.isort]
+known-first-party = []
+force-single-line = false
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.mypy]
+python_version = "3.10"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# stdlib only — no stubs needed
+[[tool.mypy.overrides]]
+module = []
+ignore_missing_imports = true

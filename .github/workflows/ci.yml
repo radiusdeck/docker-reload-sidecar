@@ -1,0 +1,102 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── 1. Lint & Type check ────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install tools
+        run: pip install ruff mypy
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+      - name: Mypy
+        run: mypy server.py
+
+      - name: Run ShellCheck (Bash Linting)
+        run: shellcheck tests/test.sh
+
+      - name: Run Hadolint (Dockerfile Linting)
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+
+  # ── 2. Docker build ────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t reload-sidecar:ci .
+
+      - name: Check image size
+        run: |
+          SIZE=$(docker image inspect reload-sidecar:ci --format '{{.Size}}')
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Image size: ${SIZE_MB} MB"
+          if [ "$SIZE_MB" -gt 100 ]; then
+            echo "::error::Image too large: ${SIZE_MB} MB (limit: 100 MB)"
+            exit 1
+          fi
+          echo "✅ Image size OK"
+
+      - name: Verify container starts
+        run: |
+          # start without docker.sock — just ot test that it doesn't crash immediately
+          docker run -d --name sidecar-smoke \
+            -p 9090:9090 \
+            -e TARGET_CONTAINER=dummy \
+            reload-sidecar:ci
+
+          sleep 2
+
+          # container should be running (even without docker.sock, just to serve /health)
+          STATUS=$(docker inspect --format '{{.State.Running}}' sidecar-smoke)
+          if [ "$STATUS" != "true" ]; then
+            echo "::error::Container crashed on startup"
+            docker logs sidecar-smoke
+            exit 1
+          fi
+
+          # Health endpoint should respond with status ok (to serve /health)
+          RESP=$(curl -s http://localhost:9090/health)
+          echo "Health response: $RESP"
+          echo "$RESP" | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          assert data['status'] == 'ok', f'Unexpected status: {data}'
+          print('✅ Health check OK')
+          "
+
+          docker rm -f sidecar-smoke
+
+  # ── 3. Integration tests ───────────────────────────────
+  integration:
+    runs-on: ubuntu-latest
+    needs: [lint, build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run integration tests
+        run: |
+          chmod +x tests/test.sh
+          ./tests/test.sh
+
