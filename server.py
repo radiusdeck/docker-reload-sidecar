@@ -56,12 +56,13 @@ def _container_running() -> bool:
     """Quick health check — is the target container running?"""
     try:
         status, body = _docker_request("GET", f"/containers/{TARGET_CONTAINER}/json")
-        if status != 200:
-            return False
-        info = json.loads(body)
-        return info.get("State", {}).get("Running", False)
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False
+    if status != 200:
+        return False
+    info: dict[str, Any] = json.loads(body)
+    state: dict[str, Any] = info.get("State", {})
+    return bool(state.get("Running", False))
 
 
 def reload_container() -> tuple[bool, str]:
@@ -88,7 +89,8 @@ def reload_container() -> tuple[bool, str]:
 class ReloadHandler(http.server.BaseHTTPRequestHandler):
     """GET /health, POST /reload."""
 
-    def do_GET(self) -> None:
+    def do_GET(self) -> None:  # noqa: N802
+        """Handle GET requests."""
         if self.path == "/health":
             target_ok = _container_running()
             self._json(
@@ -102,7 +104,8 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
-    def do_POST(self) -> None:
+    def do_POST(self) -> None:  # noqa: N802
+        """Handle POST requests."""
         if self.path != "/reload":
             self.send_error(404)
             return
@@ -113,8 +116,8 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
                 self._json(403, {"ok": False, "error": "forbidden"})
                 return
 
-        ok, detail = reload_container()
-        if ok:
+        success, detail = reload_container()
+        if success:
             self._json(
                 200,
                 {
@@ -146,13 +149,15 @@ class ReloadHandler(http.server.BaseHTTPRequestHandler):
     def _log(self, msg: str) -> None:
         print(f"[reload] {msg}", file=sys.stderr, flush=True)
 
-    def log_message(self, fmt: str, *args: Any) -> None:
+    def log_message(self, fmt: str, *args: Any) -> None:  # noqa: ARG002
+        """Quieter default logging."""
         if args:
             self._log(f"{self.address_string()} {args[0]}")
 
 
 # ── entrypoint ────────────────────────────────────────────────
 def main() -> None:
+    """Start the reload sidecar HTTP server."""
     banner = (
         f"reload-sidecar | port={PORT} target={TARGET_CONTAINER} mode={RELOAD_MODE}"
     )
