@@ -114,24 +114,30 @@ jobs:
       - name: Build image for scan
         run: docker build -t reload-sidecar:scan .
 
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: "reload-sidecar:scan"
-          format: "table"
-          exit-code: "1"                      # fail if vulnerabilities found
-          severity: "CRITICAL,HIGH"           # only consider CRITICAL and HIGH severity
-          ignore-unfixed: true                # ignore vulnerabilities that have no fix available
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sudo sh -s -- -b /usr/local/bin
+
+          trivy --version
+
+      - name: Scan for vulnerabilities
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            reload-sidecar:scan
 
       # Trivy → SARIF → GitHub Security tab
-      - name: Run Trivy (SARIF report)
-        uses: aquasecurity/trivy-action@0.28.0
-        if: always()                          # even if previous step failed (to get results even if vulnerabilities found)
-        with:
-          image-ref: "reload-sidecar:scan"
-          format: "sarif"
-          output: "trivy-results.sarif"
-          severity: "CRITICAL,HIGH,MEDIUM"
+      - name: Generate SARIF report
+        if: always()
+        run: |
+          trivy image \
+            --severity CRITICAL,HIGH,MEDIUM \
+            --format sarif \
+            --output trivy-results.sarif \
+            reload-sidecar:scan
 
       - name: Upload to GitHub Security
         uses: github/codeql-action/upload-sarif@v3

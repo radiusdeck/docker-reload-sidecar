@@ -63,6 +63,27 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest
 
+      - name: Build for scan
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true                          # load image into Docker for scanning
+          tags: reload-sidecar:release-scan
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sudo sh -s -- -b /usr/local/bin
+
+      - name: Scan before publish
+        run: |
+          trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --exit-code 1 \
+            reload-sidecar:release-scan
+            
       - name: Build & Push
         uses: docker/build-push-action@v5
         with:
