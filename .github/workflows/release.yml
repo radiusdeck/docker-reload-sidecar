@@ -13,7 +13,7 @@ env:
   IMAGE: ghcr.io/${{ github.repository }}
 
 jobs:
-  # ── CI gate — все проверки перед релизом ────────────────
+  # ── CI gate — all checks before release ────────────────
   lint:
     runs-on: ubuntu-latest
     steps:
