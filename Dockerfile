@@ -5,6 +5,8 @@ LABEL org.opencontainers.image.title="docker-reload-sidecar" \
       org.opencontainers.image.source="https://github.com/radiusdeck/docker-reload-sidecar" \
       org.opencontainers.image.licenses="MIT"
 
+RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
+
 COPY server.py /server.py
 
 EXPOSE 9090
