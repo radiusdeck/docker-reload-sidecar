@@ -41,6 +41,19 @@ jq_val() { echo "$1" | python3 -c "import sys,json; print(json.load(sys.stdin).g
 echo "=== Building image ==="
 docker build -t "$IMAGE" "$PROJECT_ROOT" -q
 
+echo "=== Checking image has no pip or ensurepip ==="
+docker run --rm -i "$IMAGE" python - <<'PY'
+import importlib.metadata
+import importlib.util
+
+for module in ("pip", "ensurepip"):
+    assert importlib.util.find_spec(module) is None, f"{module} is present"
+assert not any(
+    dist.metadata["Name"].lower() == "pip"
+    for dist in importlib.metadata.distributions()
+), "pip package metadata is present"
+PY
+
 # ── test 1: restart mode ─────────────────────────────────
 echo ""
 echo "=== Test 1: restart mode ==="
