@@ -88,6 +88,15 @@ curl -X POST http://sidecar:9090/reload \
 
 ## Testing
 
+Install the same pinned Python tools used by CI and release checks:
+
+```bash
+python -m pip install -r requirements-dev.txt
+ruff check .
+ruff format --check .
+mypy server.py
+```
+
 Requirements: Docker, curl, python3.
 
 ```bash
