@@ -7,6 +7,10 @@ LABEL org.opencontainers.image.title="docker-reload-sidecar" \
 
 RUN apk update && apk upgrade --no-cache && rm -rf /var/cache/apk/*
 
+# The stdlib-only runtime needs neither pip nor its bundled bootstrap wheel.
+RUN python -m pip uninstall --yes pip \
+    && python -c "import shutil, sysconfig; shutil.rmtree(sysconfig.get_path('stdlib') + '/ensurepip')"
+
 COPY server.py /server.py
 
 EXPOSE 9090
